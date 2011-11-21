@@ -1,0 +1,33 @@
+[DEFAULT]
+# Standard from Swift
+
+[pipeline:main]
+# Make sure informant is the first pipeline entry
+pipeline = informant catch_errors healthcheck cache ratelimit proxy-server
+
+[app:proxy-server]
+# Standard from Swift
+use = egg:swift#proxy
+
+[filter:informant]
+use = egg:swift-informant#informant
+# statsd_host = 127.0.0.1
+# statsd_port = 8125
+# standard statsd sample rate 0.0 <= 1
+# statsd_sample_rate = 0.5
+
+[filter:ratelimit]
+# Standard from Swift
+use = egg:swift#ratelimit
+
+[filter:cache]
+# Standard from Swift
+use = egg:swift#memcache
+
+[filter:healthcheck]
+# Standard from Swift
+use = egg:swift#healthcheck
+
+[filter:catch_errors]
+# Standard from Swift
+use = egg:swift#catch_errors
