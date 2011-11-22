@@ -10,7 +10,7 @@ pipeline = informant catch_errors healthcheck cache ratelimit proxy-server
 use = egg:swift#proxy
 
 [filter:informant]
-use = egg:swift-informant#informant
+use = egg:informant#informant
 # statsd_host = 127.0.0.1
 # statsd_port = 8125
 # standard statsd sample rate 0.0 <= 1

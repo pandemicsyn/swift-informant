@@ -1,4 +1,4 @@
-# swift-informant
+# Swift Informant
 
 Swift Proxy Middleware to send events to a [statsd](http://github.com/etsy/statsd/ "statsd") instance.
 
@@ -27,3 +27,13 @@ And add the following filter config:
     # statsd_sample_rate = 0.5
 
 The commented out values are the defaults.
+
+# Building packages
+
+Clone the version you want and build the package with [stdeb](https://github.com/astraw/stdeb "stdeb"):
+    
+    git clone git@github.com:pandemicsyn/swift-informant.git informant-0.0.1
+    cd informant-0.0.01
+    git checkout 0.0.1
+    python setup.py --command-packages=stdeb.command bdist_deb
+    dpkg -i deb_dist/python-informant_0.0.1-1_all.deb
