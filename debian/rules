@@ -1,0 +1,7 @@
+#!/usr/bin/make -f
+
+# Verbose mode
+#export DH_VERBOSE=1
+
+%:
+	dh $@

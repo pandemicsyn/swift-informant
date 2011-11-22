@@ -1,0 +1,5 @@
+PACKAGE (0.1) lucid; urgency=low
+
+  * Initial release. test build.
+
+ -- Florian Hines <syn@ronin.io>  Tue, 22 Nov 2011 06:22:48 +0000
