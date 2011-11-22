@@ -19,7 +19,7 @@ from eventlet.green import socket
 from random import random
 
 
-class InformantMiddleware(object):
+class Informant(object):
     """
     Informant Middleware used for sending events to statsd
     """
@@ -103,5 +103,5 @@ def filter_factory(global_conf, **local_conf):
     conf.update(local_conf)
 
     def informant_filter(app):
-        return InformantMiddleware(app, conf)
+        return Informant(app, conf)
     return informant_filter

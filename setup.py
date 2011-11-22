@@ -1,15 +1,19 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+
+from informant import __version__ as version
+
+name = "informant"
 
 setup(
-    name = "swift-informant",
-    version = "0.1",
+    name = name,
+    version = version,
     author = "Florian Hines",
     author_email = "syn@ronin.io",
-    description = ("Swift Middleware to send events to statsd"),
+    description = "Informant",
     license = "Apache License, (2.0)",
     keywords = "openstack swift middleware",
     url = "http://github.com/pandemicsyn/informant",
-    packages=['informant'],
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Apache Software License',
@@ -17,9 +21,10 @@ setup(
         'Programming Language :: Python :: 2.6',
         'Environment :: No Input/Output (Daemon)',
         ],
+    install_requires=[],
     entry_points={
         'paste.filter_factory': [
-            'informant=informant.informant:filter_factory',
+            'informant=informant.middleware:filter_factory',
             ],
         },
     )
