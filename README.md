@@ -2,7 +2,7 @@
 
 Swift Proxy Middleware to send events to a [statsd](http://github.com/etsy/statsd/ "statsd") instance.
 
-After the request has been serviced it will fire a statsd counter incrementing the request method and the status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object.
+After the request has been serviced (using a eventlet posthook if available) it will fire a statsd counter incrementing the request method and the status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object.
 
 Sample:
 
@@ -20,13 +20,13 @@ To enable load informant as the first pipeline entry (even before catcherrors):
 And add the following filter config:
 
     [filter:informant]
-    use = egg:swift-informant#informant
+    use = egg:informant#informant
     # statsd_host = 127.0.0.1
     # statsd_port = 8125
     # standard statsd sample rate 0.0 <= 1
     # statsd_sample_rate = 0.5
 
-The commented out values are the defaults.
+The commented out values are the defaults. This module does not require any additional statsd client modules.
 
 # Building packages
 
