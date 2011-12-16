@@ -16,7 +16,7 @@
 from webob import Request, Response
 from swift.common.utils import get_logger
 from eventlet.green import socket
-from random import random
+from sys import maxint
 
 
 class Informant(object):
@@ -30,7 +30,8 @@ class Informant(object):
         self.statsd_host = conf.get('statsd_host', '127.0.0.1')
         self.statsd_port = int(conf.get('statsd_port', '8125'))
         self.statsd_addr = (self.statsd_host, self.statsd_port)
-        self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
+        self.statsd_sample_rate = int(conf.get('statsd_sample_rate', '2'))
+        self.counter = 0
 
     def send_event(self, payload):
         try:
@@ -44,15 +45,15 @@ class Informant(object):
         """
         Increment multiple statsd stats counters
         """
-        if self.statsd_sample_rate < 1:
-            if random() <= self.statsd_sample_rate:
-                for item in stats:
-                    payload = "%s:%s|c|@%s" % (item, delta,
-                        self.statsd_sample_rate)
-                    self.send_event(payload)
-        else:
+        # side effect of this reset is that we can't measure more than
+        # maxint requests per second.
+        if self.counter >= maxint:
+            self.counter = 0
+        self.counter += 1
+        if self.counter % self.statsd_sample_rate == 0:
             for item in stats:
-                payload = "%s:%s|c" % (item, delta)
+                payload = "%s:%s|c|@%s" % (item, delta,
+                    self.statsd_sample_rate)
                 self.send_event(payload)
 
     def statsd_event(self, env, req):
