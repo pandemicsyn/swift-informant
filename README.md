@@ -25,6 +25,8 @@ And add the following filter config:
     # statsd_port = 8125
     # standard statsd sample rate 0.0 <= 1
     # statsd_sample_rate = 0.5
+    # list of allowed methods, all others will generate a "BAD_METHOD" event
+    # valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
 
 The commented out values are the defaults. This module does not require any additional statsd client modules.
 
@@ -32,8 +34,8 @@ The commented out values are the defaults. This module does not require any addi
 
 Clone the version you want and build the package with [stdeb](https://github.com/astraw/stdeb "stdeb"):
     
-    git clone git@github.com:pandemicsyn/swift-informant.git informant-0.0.1
-    cd informant-0.0.01
-    git checkout 0.0.1
+    git clone git@github.com:pandemicsyn/swift-informant.git informant-0.0.2
+    cd informant-0.0.02
+    git checkout 0.0.2
     python setup.py --command-packages=stdeb.command bdist_deb
-    dpkg -i deb_dist/python-informant_0.0.1-1_all.deb
+    dpkg -i deb_dist/python-informant_0.0.2-1_all.deb

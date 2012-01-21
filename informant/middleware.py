@@ -31,6 +31,8 @@ class Informant(object):
         self.statsd_port = int(conf.get('statsd_port', '8125'))
         self.statsd_addr = (self.statsd_host, self.statsd_port)
         self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
+        self.valid_methods = (conf.get('valid_http_methods', 
+                                'GET,HEAD,POST,PUT,DELETE,COPY').split(','))
         self.actual_rate = 0.0
         self.counter = 0
         self.monitored = 0
@@ -63,26 +65,29 @@ class Informant(object):
         #wrapping the *whole thing* incase something bad happens
         #better safe then sorry ?
         try:
+            request_method = req.method.upper()
+            if request_method not in self.valid_methods:
+                request_method = "BAD_METHOD"
             response = getattr(req, 'response', None)
             if not response:
                 #no response but we can still fire the event for the method.
-                self.statsd_counter_increment([req.method])
+                self.statsd_counter_increment([request_method])
             else:
                 status_int = response.status_int
                 if getattr(req, 'client_disconnect', False) or \
                         getattr(response, 'client_disconnect', False):
                     status_int = 499
                 if req.path.count('/') is 2:
-                    request_event = "acct.%s" % req.method
+                    request_event = "acct.%s" % request_method
                     status_event = "acct.%d" % status_int
                 elif req.path.count('/') is 3:
-                    request_event = "cont.%s" % req.method
+                    request_event = "cont.%s" % request_method
                     status_event = "cont.%d" % status_int
                 elif req.path.count('/') >= 4:
-                    request_event = "obj.%s" % req.method
+                    request_event = "obj.%s" % request_method
                     status_event = "obj.%d" % status_int
                 else:
-                    request_event = "invalid.%s" % req.method
+                    request_event = "invalid.%s" % request_method
                     status_event = "invalid.%d" % status_int
                 self.statsd_counter_increment([request_event, status_event])
         except Exception:

@@ -15,6 +15,8 @@ use = egg:informant#informant
 # statsd_port = 8125
 # standard statsd sample rate 0.0 <= 1
 # statsd_sample_rate = 0.5
+# list of allowed methods, all others will generate a "BAD_METHOD" event
+# valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
 
 [filter:ratelimit]
 # Standard from Swift
