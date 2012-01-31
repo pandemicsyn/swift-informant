@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from webob import Request, Response
-from swift.common.utils import get_logger
+from webob import Request
+from swift.common.utils import get_logger, TRUE_VALUES
 from eventlet.green import socket
 from sys import maxint
+from time import time
 
 
 class Informant(object):
@@ -31,65 +32,77 @@ class Informant(object):
         self.statsd_port = int(conf.get('statsd_port', '8125'))
         self.statsd_addr = (self.statsd_host, self.statsd_port)
         self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
-        self.valid_methods = (conf.get('valid_http_methods', 
-                                'GET,HEAD,POST,PUT,DELETE,COPY').split(','))
+        self.valid_methods = conf.get('valid_http_methods',
+                                'GET,HEAD,POST,PUT,DELETE,COPY').split(',')
+        self.combined_events = conf.get(
+                                'combined_events', 'no').lower() in TRUE_VALUES
         self.actual_rate = 0.0
         self.counter = 0
         self.monitored = 0
+        
 
-    def send_event(self, payload):
-        try:
-            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.udp_socket.sendto(payload, self.statsd_addr)
-        except Exception:
-            #udp sendto failed (socket already in use?), but thats ok
-            self.logger.exception(_("Error trying to send statsd event"))
+    def _send_events(self, payloads, combined_events=False):
+        """Fire the udp events to statsd"""
+        if not combined_events:
+            for payload in payloads:
+                try:
+                    udp_socket = socket.socket(socket.AF_INET,
+                                                socket.SOCK_DGRAM)
+                    udp_socket.sendto(payload, self.statsd_addr)
+                except Exception:
+                    self.logger.exception(_("Error sending statsd event"))
+        else:
+            #send multiple events per packet
+            payload = "#".join(payloads)
+            try:
+                udp_socket = socket.socket(socket.AF_INET,
+                                            socket.SOCK_DGRAM)
+                udp_socket.sendto(payload, self.statsd_addr)
+            except Exception:
+                self.logger.exception(_("Error sending statsd event"))
 
-    def statsd_counter_increment(self, stats, delta=1):
+    def _send_sampled_event(self):
+        """"
+        Track the sample rate and checks to see if this is a request 
+        that should be sent to statsd.
+
+        :returns: True if the event should be sent to statsd
         """
-        Increment multiple statsd stats counters
-        """
+        send_sample = False
         self.counter += 1
         if self.actual_rate < self.statsd_sample_rate:
             self.monitored += 1
-            for item in stats:
-                payload = "%s:%s|c|@%s" % (item, delta,
-                    self.statsd_sample_rate)
-                self.send_event(payload)
+            send_sample = True
         self.actual_rate = float(self.monitored) / float(self.counter)
         if self.counter >= maxint or self.monitored >= maxint:
             self.counter = 0
             self.monitored = 0
+        return send_sample
 
     def statsd_event(self, env, req):
-        #wrapping the *whole thing* incase something bad happens
-        #better safe then sorry ?
+        """generate a statsd event for this request"""
         try:
-            request_method = req.method.upper()
-            if request_method not in self.valid_methods:
-                request_method = "BAD_METHOD"
-            response = getattr(req, 'response', None)
-            if not response:
-                #no response but we can still fire the event for the method.
-                self.statsd_counter_increment([request_method])
-            else:
-                status_int = response.status_int
-                if getattr(req, 'client_disconnect', False) or \
-                        getattr(response, 'client_disconnect', False):
-                    status_int = 499
-                if req.path.count('/') is 2:
-                    request_event = "acct.%s" % request_method
-                    status_event = "acct.%d" % status_int
-                elif req.path.count('/') is 3:
-                    request_event = "cont.%s" % request_method
-                    status_event = "cont.%d" % status_int
-                elif req.path.count('/') >= 4:
-                    request_event = "obj.%s" % request_method
-                    status_event = "obj.%d" % status_int
-                else:
-                    request_event = "invalid.%s" % request_method
-                    status_event = "invalid.%d" % status_int
-                self.statsd_counter_increment([request_event, status_event])
+            if self._send_sampled_event():
+                request_method = req.method.upper()
+                if request_method not in self.valid_methods:
+                    request_method = "BAD_METHOD"
+                if 'informant.status' in env and 'informant.start_time' in env:
+                    status_int = env['informant.status']
+                    response = getattr(req, 'response', None)
+                    if getattr(req, 'client_disconnect', False) or \
+                            getattr(response, 'client_disconnect', False):
+                        status_int = 499
+                    duration = (time() - env['informant.start_time']) * 1000
+                try:
+                    stat_type = ['invalid', 'invalid', 'acct', 'cont', 'obj'] \
+                                    [req.path.count('/')]
+                except IndexError:
+                    stat_type = 'obj'
+                metric_name = "%s.%s.%s" % (stat_type, req.method, status_int)
+                counter = "%s:1|c|@%s" % (metric_name, self.statsd_sample_rate)
+                timer = "%s:%d|ms|@%s" % (metric_name, duration,
+                                            self.statsd_sample_rate)
+                self._send_events([counter, timer], self.combined_events)
         except Exception:
             try:
                 self.logger.exception(_("Encountered error in statsd_event"))
@@ -97,14 +110,24 @@ class Informant(object):
                 pass
 
     def __call__(self, env, start_response):
+
+        def _start_response(status, headers, exc_info=None):
+            """start_response wrapper to add request status to env"""
+            env['informant.status'] = int(status.split(' ', 1)[0])
+            start_response(status, headers, exc_info)
+
         req = Request(env)
-        if 'eventlet.posthooks' in env:
-            env['eventlet.posthooks'].append(
-                (self.statsd_event, (req,), {}))
-            return self.app(env, start_response)
-        else:
-            # No posthook support better to just not gen events
-            return self.app(env, start_response)
+        try:
+            if 'eventlet.posthooks' in env:
+                env['informant.start_time'] = time()
+                env['eventlet.posthooks'].append(
+                    (self.statsd_event, (req,), {}))
+            return self.app(env, _start_response)
+        except Exception:
+            self.logger.exception('WSGI EXCEPTION:')
+            _start_response('500 Internal Server Error',
+                            [('Content-Length', '0')])
+            return []
 
 
 def filter_factory(global_conf, **local_conf):

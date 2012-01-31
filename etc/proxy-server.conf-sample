@@ -17,6 +17,8 @@ use = egg:informant#informant
 # statsd_sample_rate = 0.5
 # list of allowed methods, all others will generate a "BAD_METHOD" event
 # valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
+# send multiple statsd events per packet as supported by statsdpy
+# combined_events = no
 
 [filter:ratelimit]
 # Standard from Swift

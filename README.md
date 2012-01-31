@@ -2,16 +2,15 @@
 
 Swift Proxy Middleware to send events to a [statsd](http://github.com/etsy/statsd/ "statsd") instance.
 
-After the request has been serviced (using a eventlet posthook if available) it will fire a statsd counter incrementing the request method and the status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object.
+After the request has been serviced (using a eventlet posthook if available) it will fire a statsd counter incrementing the request method's status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object. In addition a timer event is fired for the request duration of the event.
 
-Sample:
+Counter Sample:
 
-    obj.GET:1|c
-    obj.200:1|c
-    cont.DELETE:1|c
-    cont.204:1|c
-    acct.DELETE:1|c
-    acct.DELETE:1|c
+    obj.GET.200:1|c
+
+Timer Sample:
+
+    duration.acct.GET.200:140|ms
 
 To enable load informant as the first pipeline entry (even before catcherrors):
 
@@ -27,8 +26,10 @@ And add the following filter config:
     # statsd_sample_rate = 0.5
     # list of allowed methods, all others will generate a "BAD_METHOD" event
     # valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
+    # send multiple statsd events per packet as supported by statsdpy
+    # combined_events = no
 
-The commented out values are the defaults. This module does not require any additional statsd client modules.
+The commented out values are the defaults. This module does not require any additional statsd client modules. To utilize combined_events you'll need to run a statsd server that supports mulitple events per packet such as [statsdpy](https://github.com/pandemicsyn/statsdpyd)
 
 # Building packages
 
