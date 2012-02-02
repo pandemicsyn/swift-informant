@@ -24,7 +24,6 @@ class Informant(object):
     """
     Informant Middleware used for sending events to statsd
     """
-
     def __init__(self, app, conf, *args, **kwargs):
         self.app = app
         self.logger = get_logger(conf, log_route='informant')
@@ -33,37 +32,32 @@ class Informant(object):
         self.statsd_addr = (self.statsd_host, self.statsd_port)
         self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
         self.valid_methods = conf.get('valid_http_methods',
-                                'GET,HEAD,POST,PUT,DELETE,COPY').split(',')
+                                        'GET,HEAD,POST,PUT,DELETE,COPY')
+        self.valid_methods = [s.strip().upper() for s in \
+                                self.valid_methods.split(',')  if s.strip()]
         self.combined_events = conf.get(
                                 'combined_events', 'no').lower() in TRUE_VALUES
         self.actual_rate = 0.0
         self.counter = 0
         self.monitored = 0
-        
 
     def _send_events(self, payloads, combined_events=False):
         """Fire the udp events to statsd"""
-        if not combined_events:
-            for payload in payloads:
-                try:
-                    udp_socket = socket.socket(socket.AF_INET,
-                                                socket.SOCK_DGRAM)
+        try:
+            udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            if not combined_events:
+                for payload in payloads:
                     udp_socket.sendto(payload, self.statsd_addr)
-                except Exception:
-                    self.logger.exception(_("Error sending statsd event"))
-        else:
-            #send multiple events per packet
-            payload = "#".join(payloads)
-            try:
-                udp_socket = socket.socket(socket.AF_INET,
-                                            socket.SOCK_DGRAM)
+            else:
+                #send multiple events per packet
+                payload = "#".join(payloads)
                 udp_socket.sendto(payload, self.statsd_addr)
-            except Exception:
-                self.logger.exception(_("Error sending statsd event"))
+        except Exception:
+            self.logger.exception(_("Error sending statsd event"))
 
     def _send_sampled_event(self):
         """"
-        Track the sample rate and checks to see if this is a request 
+        Track the sample rate and checks to see if this is a request
         that should be sent to statsd.
 
         :returns: True if the event should be sent to statsd
