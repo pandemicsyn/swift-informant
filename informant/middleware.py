@@ -87,6 +87,8 @@ class Informant(object):
                             getattr(response, 'client_disconnect', False):
                         status_int = 499
                     duration = (time() - env['informant.start_time']) * 1000
+                    transferred = getattr(req, 'bytes_transferred', 0) or \
+                                    getattr(response, 'bytes_transferred', 0)
                 try:
                     stat_type = ['invalid', 'invalid', 'acct', 'cont', 'obj'] \
                                     [req.path.count('/')]
@@ -96,7 +98,9 @@ class Informant(object):
                 counter = "%s:1|c|@%s" % (metric_name, self.statsd_sample_rate)
                 timer = "%s:%d|ms|@%s" % (metric_name, duration,
                                             self.statsd_sample_rate)
-                self._send_events([counter, timer], self.combined_events)
+                tfer = "tfer.%s:%d|c|@%s" % (metric_name, transferred,
+                                                self.statsd_sample_rate)
+                self._send_events([counter, timer, tfer], self.combined_events)
         except Exception:
             try:
                 self.logger.exception(_("Encountered error in statsd_event"))
