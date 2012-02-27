@@ -37,6 +37,7 @@ class Informant(object):
                                 self.valid_methods.split(',')  if s.strip()]
         self.combined_events = conf.get(
                                 'combined_events', 'no').lower() in TRUE_VALUES
+        self.metric_name_prepend = conf.get('metric_name_prepend', '')
         self.actual_rate = 0.0
         self.counter = 0
         self.monitored = 0
@@ -98,11 +99,12 @@ class Informant(object):
                 except IndexError:
                     stat_type = 'obj'
                 metric_name = "%s.%s.%s" % (stat_type, req.method, status_int)
-                counter = "%s:1|c|@%s" % (metric_name, self.statsd_sample_rate)
-                timer = "%s:%d|ms|@%s" % (metric_name, duration,
+                counter = "%s%s:1|c|@%s" % (self.metric_name_prepend, metric_name, 
                                             self.statsd_sample_rate)
-                tfer = "tfer.%s:%s|c|@%s" % (metric_name, transferred,
-                                                self.statsd_sample_rate)
+                timer = "%s%s:%d|ms|@%s" % (self.metric_name_prepend, metric_name, duration,
+                                            self.statsd_sample_rate)
+                tfer = "%stfer.%s:%s|c|@%s" % (self.metric_name_prepend, metric_name, 
+                                                transferred, self.statsd_sample_rate)
                 self._send_events([counter, timer, tfer], self.combined_events)
         except Exception:
             try:
