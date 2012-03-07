@@ -97,7 +97,7 @@ class Informant(object):
                                     [req.path.count('/')]
                 except IndexError:
                     stat_type = 'obj'
-                metric_name = "%s.%s.%s" % (stat_type, req.method, status_int)
+                metric_name = "%s.%s.%s" % (stat_type, request_method, status_int)
                 counter = "%s:1|c|@%s" % (metric_name, self.statsd_sample_rate)
                 timer = "%s:%d|ms|@%s" % (metric_name, duration,
                                             self.statsd_sample_rate)
