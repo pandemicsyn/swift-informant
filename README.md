@@ -1,4 +1,4 @@
-# Swift Informant
+# Swift Informant - [![Build Status](https://secure.travis-ci.org/pandemicsyn/swift-informant.png?branch=master)](http://travis-ci.org/pandemicsyn/swift-informant)
 
 Swift Proxy Middleware to send events to a [statsd](http://github.com/etsy/statsd/ "statsd") instance.
 
