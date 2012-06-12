@@ -81,30 +81,41 @@ class Informant(object):
                 request_method = req.method.upper()
                 if request_method not in self.valid_methods:
                     request_method = "BAD_METHOD"
-                if 'informant.status' in env and 'informant.start_time' in env:
+                if 'informant.status' in env:
                     status_int = env['informant.status']
                     response = getattr(req, 'response', None)
                     if getattr(req, 'client_disconnect', False) or \
                             getattr(response, 'client_disconnect', False):
                         status_int = 499
+                else:
+                    #start_response never got called for some reason, likely
+                    #because something else blew up but we don't know for sure.
+                    status_int = 599
+                if 'informant.start_time' in env:
                     duration = (time() - env['informant.start_time']) * 1000
-                    transferred = getattr(req, 'bytes_transferred', 0)
-                    if transferred is '-' or transferred is 0:
-                        transferred = getattr(response, 'bytes_transferred', 0)
-                    if transferred is '-':
-                        transferred = 0
+                else:
+                    duration = 0
+                transferred = getattr(req, 'bytes_transferred', 0)
+                if transferred is '-' or transferred is 0:
+                    transferred = getattr(response, 'bytes_transferred', 0)
+                if transferred is '-':
+                    transferred = 0
                 try:
                     stat_type = ['invalid', 'invalid', 'acct', 'cont', 'obj'] \
                                     [req.path.count('/')]
                 except IndexError:
                     stat_type = 'obj'
-                metric_name = "%s.%s.%s" % (stat_type, request_method, status_int)
-                counter = "%s%s:1|c|@%s" % (self.metric_name_prepend, metric_name, 
+                metric_name = "%s.%s.%s" % (stat_type, request_method,
+                                            status_int)
+                counter = "%s%s:1|c|@%s" % (self.metric_name_prepend,
+                                            metric_name,
                                             self.statsd_sample_rate)
-                timer = "%s%s:%d|ms|@%s" % (self.metric_name_prepend, metric_name, duration,
+                timer = "%s%s:%d|ms|@%s" % (self.metric_name_prepend,
+                                            metric_name, duration,
                                             self.statsd_sample_rate)
-                tfer = "%stfer.%s:%s|c|@%s" % (self.metric_name_prepend, metric_name,
-                                               transferred, self.statsd_sample_rate)
+                tfer = "%stfer.%s:%s|c|@%s" % (self.metric_name_prepend,
+                                               metric_name, transferred,
+                                               self.statsd_sample_rate)
                 self._send_events([counter, timer, tfer], self.combined_events)
         except Exception:
             try:
