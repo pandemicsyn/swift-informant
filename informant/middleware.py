@@ -107,13 +107,7 @@ class Informant(object):
                     except IndexError:
                         stat_type = 'obj'
                 else:
-                    if 'swift.source' in env:
-                        if env['swift.source']:
-                            stat_type = env['swift.source']
-                        else:
-                            stat_type = "invalid_swift_source"
-                    else:
-                        stat_type = "invalid"
+                    stat_type = env.get('swift.source') or 'invalid'
                 metric_name = "%s.%s.%s" % (stat_type, request_method,
                                             status_int)
                 counter = "%s%s:1|c|@%s" % (self.metric_name_prepend,
