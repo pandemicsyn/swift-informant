@@ -188,6 +188,24 @@ class TestInformant(unittest.TestCase):
         self.assertEquals(timer.startswith('obj.GET.200'), True)
         self.assertEquals(tfer.startswith('tfer.obj.GET.200:500'), True)
 
+    def test_informant_sos_op(self):
+        req = Request.blank('/something',
+                            environ={'REQUEST_METHOD': 'GET'})
+        req.environ['informant.status'] = 200
+        req.environ['informant.start_time'] = 1331098000.00
+        req.environ['swift.source'] = 'SOS'
+        req.client_disconnect = False
+        req.bytes_transferred = "500"
+        print "--> %s" % req.environ
+        resp = self.app.statsd_event(req.environ, req)
+        counter = self.mock._send_events_calls[0][0][0][0]
+        timer = self.mock._send_events_calls[0][0][0][1]
+        tfer = self.mock._send_events_calls[0][0][0][2]
+        print self.mock._send_events_calls
+        self.assertEquals(counter.startswith('SOS.GET.200'), True)
+        self.assertEquals(timer.startswith('SOS.GET.200'), True)
+        self.assertEquals(tfer.startswith('tfer.SOS.GET.200:500'), True)
+
     def test_informant_methods(self):
         for method in ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', '-JUNK']:
             req = Request.blank('/v1/someaccount',

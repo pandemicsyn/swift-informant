@@ -32,11 +32,11 @@ class Informant(object):
         self.statsd_addr = (self.statsd_host, self.statsd_port)
         self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
         self.valid_methods = conf.get('valid_http_methods',
-                                        'GET,HEAD,POST,PUT,DELETE,COPY')
-        self.valid_methods = [s.strip().upper() for s in \
-                                self.valid_methods.split(',')  if s.strip()]
-        self.combined_events = conf.get(
-                                'combined_events', 'no').lower() in TRUE_VALUES
+                                      'GET,HEAD,POST,PUT,DELETE,COPY')
+        self.valid_methods = [s.strip().upper() for s in
+                              self.valid_methods.split(',') if s.strip()]
+        self.combined_events = conf.get('combined_events',
+                                        'no').lower() in TRUE_VALUES
         self.metric_name_prepend = conf.get('metric_name_prepend', '')
         self.actual_rate = 0.0
         self.counter = 0
@@ -100,11 +100,20 @@ class Informant(object):
                     transferred = getattr(response, 'bytes_transferred', 0)
                 if transferred is '-':
                     transferred = 0
-                try:
-                    stat_type = ['invalid', 'invalid', 'acct', 'cont', 'obj'] \
-                                    [req.path.count('/')]
-                except IndexError:
-                    stat_type = 'obj'
+                if req.path.startswith('/v1/'):
+                    try:
+                        stat_type = ['invalid', 'invalid', 'acct', 'cont',
+                                     'obj'][req.path.count('/')]
+                    except IndexError:
+                        stat_type = 'obj'
+                else:
+                    if 'swift.source' in env:
+                        if env['swift.source']:
+                            stat_type = env['swift.source']
+                        else:
+                            stat_type = "invalid_swift_source"
+                    else:
+                        stat_type = "invalid"
                 metric_name = "%s.%s.%s" % (stat_type, request_method,
                                             status_int)
                 counter = "%s%s:1|c|@%s" % (self.metric_name_prepend,
