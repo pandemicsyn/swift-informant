@@ -19,7 +19,7 @@ use = egg:informant#informant
 # valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
 # send multiple statsd events per packet as supported by statsdpy
 # combined_events = no
-
+# combine_key = \n
 
 [filter:ratelimit]
 # Standard from Swift

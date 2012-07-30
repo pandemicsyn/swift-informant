@@ -37,6 +37,7 @@ class Informant(object):
                               self.valid_methods.split(',') if s.strip()]
         self.combined_events = conf.get('combined_events',
                                         'no').lower() in TRUE_VALUES
+        self.combine_key = conf.get('combine_key', '\n')
         self.metric_name_prepend = conf.get('metric_name_prepend', '')
         self.actual_rate = 0.0
         self.counter = 0
@@ -51,7 +52,7 @@ class Informant(object):
                     udp_socket.sendto(payload, self.statsd_addr)
             else:
                 #send multiple events per packet
-                payload = "#".join(payloads)
+                payload = self.combine_key.join(payloads)
                 udp_socket.sendto(payload, self.statsd_addr)
         except Exception:
             self.logger.exception(_("Error sending statsd event"))

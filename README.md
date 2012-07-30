@@ -32,18 +32,22 @@ And add the following filter config:
     # valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
     # send multiple statsd events per packet as supported by statsdpy
     # combined_events = no
+    # They key used to combine events for reporting to statsd, alternate
+    # versions used a # to seperate events. The offical way is by newline
+    # combine_key = \n
     # prepends name to metric collection output for easier recognition, e.g. company.swift.
-    # metric_name_prepend = 
+    # metric_name_prepend =
 
 The commented out values are the defaults. This module does not require any additional statsd client modules. 
+
 **To utilize combined_events you'll need to run a statsd server that supports mulitple events per packet such as [statsdpy](https://github.com/pandemicsyn/statsdpyd)**
 
 # Building packages
 
 Clone the version you want and build the package with [stdeb](https://github.com/astraw/stdeb "stdeb"):
-    
-    git clone git@github.com:pandemicsyn/swift-informant.git informant-0.0.5
-    cd informant-0.0.5
-    git checkout 0.0.5
+
+    git clone git@github.com:pandemicsyn/swift-informant.git informant-0.0.8
+    cd informant-0.0.8
+    git checkout 0.0.8
     python setup.py --command-packages=stdeb.command bdist_deb
-    dpkg -i deb_dist/python-informant_0.0.5-1_all.deb
+    dpkg -i deb_dist/python-informant_0.0.8-1_all.deb
