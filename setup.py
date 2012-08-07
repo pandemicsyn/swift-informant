@@ -12,7 +12,7 @@ setup(
     description = "Informant",
     license = "Apache License, (2.0)",
     keywords = "openstack swift middleware",
-    url = "http://github.com/pandemicsyn/informant",
+    url = "http://github.com/pandemicsyn/swift-informant",
     packages=find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
