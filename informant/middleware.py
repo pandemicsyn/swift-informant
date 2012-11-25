@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from webob import Request
+from swift.common.swob import Request
 from swift.common.utils import get_logger, TRUE_VALUES
 from eventlet.green import socket
 from sys import maxint
@@ -38,6 +38,8 @@ class Informant(object):
         self.combined_events = conf.get('combined_events',
                                         'no').lower() in TRUE_VALUES
         self.combine_key = conf.get('combine_key', '\n')
+        if self.combine_key == "\\n":
+            self.combine_key = '\n'
         self.metric_name_prepend = conf.get('metric_name_prepend', '')
         self.actual_rate = 0.0
         self.counter = 0
