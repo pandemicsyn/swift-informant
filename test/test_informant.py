@@ -1,6 +1,6 @@
 import unittest
 
-from webob import Request, Response
+from swift.common.swob import Request, Response
 from informant import middleware
 
 class FakeApp(object):
