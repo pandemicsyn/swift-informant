@@ -106,7 +106,7 @@ class Informant(object):
                 if req.path.startswith('/v1/'):
                     try:
                         stat_type = ['invalid', 'invalid', 'acct', 'cont',
-                                     'obj'][req.path.count('/')]
+                                     'obj'][req.path.rstrip('/').count('/')]
                     except IndexError:
                         stat_type = 'obj'
                 else:
