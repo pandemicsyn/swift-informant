@@ -72,6 +72,24 @@ class TestInformant(unittest.TestCase):
         self.assertEquals(timer.startswith('invalid.GET.200'), True)
         self.assertEquals(tfer.startswith('tfer.invalid.GET.200'), True)
 
+    def test_informant_healthcheck(self):
+        expected = [((['invalid.GET.200:1|c|@0.5',
+                       'invalid.GET.200:1331097138625|ms|@0.5',
+                       'tfer.invalid.GET.200:0|c|@0.5']))]
+        req = Request.blank('/healthcheck',
+                            environ={'REQUEST_METHOD': 'GET'})
+        req.environ['informant.status'] = 200
+        req.environ['informant.start_time'] = 1331098000.00
+        req.client_disconnect = False
+        req.bytes_transferred = "500"
+        resp = self.app.statsd_event(req.environ, req)
+        counter = self.mock._send_events_calls[0][0][0][0]
+        timer = self.mock._send_events_calls[0][0][0][1]
+        tfer = self.mock._send_events_calls[0][0][0][2]
+        self.assertTrue(counter.startswith('healthcheck.GET.200'), counter)
+        self.assertTrue(timer.startswith('healthcheck.GET.200'), timer)
+        self.assertTrue(tfer.startswith('tfer.healthcheck.GET.200'), tfer)
+
     def test_informant_bad_method(self):
         req = Request.blank('/invalidrandomness',
                             environ={'REQUEST_METHOD': 'WTFMONKEYS'})
@@ -120,6 +138,23 @@ class TestInformant(unittest.TestCase):
         tfer = self.mock._send_events_calls[0][0][0][2]
         print self.mock._send_events_calls
         self.assertEquals(tfer.startswith('tfer.invalid.GET.200:0'), True)
+
+    def test_informant_acct_op_v1_0(self):
+        req = Request.blank(
+            '/v1.0/someaccount', environ={'REQUEST_METHOD': 'GET'})
+        req.environ['informant.status'] = 200
+        req.environ['informant.start_time'] = 1331098000.00
+        req.client_disconnect = False
+        req.bytes_transferred = "500"
+        print "--> %s" % req.environ
+        resp = self.app.statsd_event(req.environ, req)
+        counter = self.mock._send_events_calls[0][0][0][0]
+        timer = self.mock._send_events_calls[0][0][0][1]
+        tfer = self.mock._send_events_calls[0][0][0][2]
+        print self.mock._send_events_calls
+        self.assertEquals(counter.startswith('acct.GET.200'), True)
+        self.assertEquals(timer.startswith('acct.GET.200'), True)
+        self.assertEquals(tfer.startswith('tfer.acct.GET.200:500'), True)
 
     def test_informant_acct_op(self):
         req = Request.blank('/v1/someaccount', environ={'REQUEST_METHOD': 'GET'})
@@ -207,7 +242,8 @@ class TestInformant(unittest.TestCase):
         self.assertEquals(tfer.startswith('tfer.SOS.GET.200:500'), True)
 
     def test_informant_methods(self):
-        for method in ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', '-JUNK']:
+        for method in [
+                'GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'OPTIONS', '-JUNK']:
             req = Request.blank('/v1/someaccount',
                                 environ={'REQUEST_METHOD': method})
             req.environ['informant.status'] = 200
