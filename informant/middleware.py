@@ -32,7 +32,7 @@ class Informant(object):
         self.statsd_addr = (self.statsd_host, self.statsd_port)
         self.statsd_sample_rate = float(conf.get('statsd_sample_rate', '.5'))
         self.valid_methods = conf.get('valid_http_methods',
-                                      'GET,HEAD,POST,PUT,DELETE,COPY')
+                                      'GET,HEAD,POST,PUT,DELETE,COPY,OPTIONS')
         self.valid_methods = [s.strip().upper() for s in
                               self.valid_methods.split(',') if s.strip()]
         self.prefix_accounts = conf.get('prefix_accounts', '')
@@ -106,14 +106,20 @@ class Informant(object):
                     transferred = getattr(response, 'bytes_transferred', 0)
                 if transferred is '-':
                     transferred = 0
-                if req.path.startswith('/v1/'):
-                    try:
-                        stat_type = ['invalid', 'invalid', 'acct', 'cont',
-                                     'obj'][req.path.rstrip('/').count('/')]
-                    except IndexError:
-                        stat_type = 'obj'
-                else:
-                    stat_type = env.get('swift.source') or 'invalid'
+                stat_type = env.get('swift.source')
+                if not stat_type:
+                    if req.path == '/healthcheck':
+                        stat_type = 'healthcheck'
+                    elif req.path.startswith('/v1/') or \
+                            req.path.startswith('/v1.0/'):
+                        try:
+                            stat_type = [
+                                'invalid', 'invalid', 'acct', 'cont',
+                                'obj'][req.path.rstrip('/').count('/')]
+                        except IndexError:
+                            stat_type = 'obj'
+                if not stat_type:
+                    stat_type = 'invalid'
                 version, acct, _junk = split_path(req.path, 1, 3, True)
                 if acct in self.prefix_accounts:
                     metric_name = "%s.%s.%s.%s" % (acct, stat_type,
