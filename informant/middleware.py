@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from swift.common.swob import Request
-from swift.common.utils import get_logger, TRUE_VALUES
+from swift.common.utils import get_logger, TRUE_VALUES, split_path
 from eventlet.green import socket
 from sys import maxint
 from time import time
@@ -35,6 +35,9 @@ class Informant(object):
                                       'GET,HEAD,POST,PUT,DELETE,COPY')
         self.valid_methods = [s.strip().upper() for s in
                               self.valid_methods.split(',') if s.strip()]
+        self.prefix_accounts = conf.get('prefix_accounts', '')
+        self.prefix_accounts = [s.strip() for s in
+                                self.prefix_accounts.split(',')]
         self.combined_events = conf.get('combined_events',
                                         'no').lower() in TRUE_VALUES
         self.combine_key = conf.get('combine_key', '\n')
@@ -111,8 +114,13 @@ class Informant(object):
                         stat_type = 'obj'
                 else:
                     stat_type = env.get('swift.source') or 'invalid'
-                metric_name = "%s.%s.%s" % (stat_type, request_method,
-                                            status_int)
+                version, acct, _junk = split_path(req.path, 1, 3, True)
+                if acct in self.prefix_accounts:
+                    metric_name = "%s.%s.%s.%s" % (acct, stat_type,
+                                                   request_method, status_int)
+                else:
+                    metric_name = "%s.%s.%s" % (stat_type, request_method,
+                                                status_int)
                 counter = "%s%s:1|c|@%s" % (self.metric_name_prepend,
                                             metric_name,
                                             self.statsd_sample_rate)
