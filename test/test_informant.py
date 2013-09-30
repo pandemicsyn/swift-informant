@@ -43,7 +43,8 @@ class TestInformant(unittest.TestCase):
 
     def setUp(self):
         self.mock = Mocked()
-        self.app = middleware.Informant(FakeApp(), {})
+        self.app = middleware.Informant(FakeApp(),
+                                        {'prefix_accounts': 'AUTH_omgtests'})
         self.orig_send_events = self.app._send_events
         self.orig_send_sampled_event = self.app._send_sampled_event
         self.app._send_events = self.mock.fake_send_events
@@ -222,6 +223,24 @@ class TestInformant(unittest.TestCase):
         self.assertEquals(counter.startswith('obj.GET.200'), True)
         self.assertEquals(timer.startswith('obj.GET.200'), True)
         self.assertEquals(tfer.startswith('tfer.obj.GET.200:500'), True)
+
+    def test_informant_account_prefix(self):
+        req = Request.blank('/v1/AUTH_omgtests/thecont/theobj/with/extras',
+                            environ={'REQUEST_METHOD': 'GET'})
+        req.environ['informant.status'] = 200
+        req.environ['informant.start_time'] = 1331098000.00
+        req.client_disconnect = False
+        req.bytes_transferred = "500"
+        print "--> %s" % req.environ
+        resp = self.app.statsd_event(req.environ, req)
+        counter = self.mock._send_events_calls[0][0][0][0]
+        timer = self.mock._send_events_calls[0][0][0][1]
+        tfer = self.mock._send_events_calls[0][0][0][2]
+        print self.mock._send_events_calls
+        self.assertEquals(counter.startswith('AUTH_omgtests.obj.GET.200'), True)
+        self.assertEquals(timer.startswith('AUTH_omgtests.obj.GET.200'), True)
+        print tfer
+        self.assertEquals(tfer.startswith('tfer.AUTH_omgtests.obj.GET.200:500'), True)
 
     def test_informant_sos_op(self):
         req = Request.blank('/something',

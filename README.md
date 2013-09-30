@@ -37,6 +37,9 @@ And add the following filter config:
     # combine_key = \n
     # prepends name to metric collection output for easier recognition, e.g. company.swift.
     # metric_name_prepend =
+    # A list of accounts for who we'llaccount prefix the metric name with their account name
+    # This lets you track metrics for specific accounts independently.
+    # prefix_accounts = AUTH_something,
 
 The commented out values are the defaults. This module does not require any additional statsd client modules. 
 

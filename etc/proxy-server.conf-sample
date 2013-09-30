@@ -11,15 +11,17 @@ use = egg:swift#proxy
 
 [filter:informant]
 use = egg:informant#informant
-# statsd_host = 127.0.0.1
-# statsd_port = 8125
+#statsd_host = 127.0.0.1
+#statsd_port = 8125
 # standard statsd sample rate 0.0 <= 1
-# statsd_sample_rate = 0.5
+#statsd_sample_rate = 0.5
 # list of allowed methods, all others will generate a "BAD_METHOD" event
-# valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
+#valid_http_methods = GET,HEAD,POST,PUT,DELETE,COPY
 # send multiple statsd events per packet as supported by statsdpy
-# combined_events = no
-# combine_key = \n 
+#combined_events = no
+#combine_key = \n 
+# List of accounts whos account string should be prefixed to metric names
+#prefix_accounts = AUTH_something, 
 
 [filter:ratelimit]
 # Standard from Swift
