@@ -73,6 +73,24 @@ class TestInformant(unittest.TestCase):
         self.assertEquals(timer.startswith('invalid.GET.200'), True)
         self.assertEquals(tfer.startswith('tfer.invalid.GET.200'), True)
 
+    def test_informant_slash(self):
+        expected = [((['invalid.GET.200:1|c|@0.5',
+                       'invalid.GET.200:1331097138625|ms|@0.5',
+                       'tfer.invalid.GET.200:0|c|@0.5']))]
+        req = Request.blank('/',
+                            environ={'REQUEST_METHOD': 'GET'})
+        req.environ['informant.status'] = 200
+        req.environ['informant.start_time'] = 1331098000.00
+        req.client_disconnect = False
+        req.bytes_transferred = "500"
+        resp = self.app.statsd_event(req.environ, req)
+        counter = self.mock._send_events_calls[0][0][0][0]
+        timer = self.mock._send_events_calls[0][0][0][1]
+        tfer = self.mock._send_events_calls[0][0][0][2]
+        self.assertTrue(counter.startswith('invalid.GET.200'), counter)
+        self.assertTrue(timer.startswith('invalid.GET.200'), timer)
+        self.assertTrue(tfer.startswith('tfer.invalid.GET.200'), tfer)
+
     def test_informant_healthcheck(self):
         expected = [((['invalid.GET.200:1|c|@0.5',
                        'invalid.GET.200:1331097138625|ms|@0.5',
@@ -236,11 +254,15 @@ class TestInformant(unittest.TestCase):
         counter = self.mock._send_events_calls[0][0][0][0]
         timer = self.mock._send_events_calls[0][0][0][1]
         tfer = self.mock._send_events_calls[0][0][0][2]
+        acct_counter = self.mock._send_events_calls[0][0][0][3]
+        acct_timer = self.mock._send_events_calls[0][0][0][4]
         print self.mock._send_events_calls
-        self.assertEquals(counter.startswith('AUTH_omgtests.obj.GET.200'), True)
-        self.assertEquals(timer.startswith('AUTH_omgtests.obj.GET.200'), True)
+        self.assertEquals(counter.startswith('obj.GET.200'), True)
+        self.assertEquals(acct_counter.startswith('AUTH_omgtests.obj.GET.200'), True)
+        self.assertEquals(timer.startswith('obj.GET.200'), True)
+        self.assertEquals(acct_counter.startswith('AUTH_omgtests.obj.GET.200'), True)
         print tfer
-        self.assertEquals(tfer.startswith('tfer.AUTH_omgtests.obj.GET.200:500'), True)
+        self.assertEquals(tfer.startswith('tfer.obj.GET.200:500'), True)
 
     def test_informant_sos_op(self):
         req = Request.blank('/something',
