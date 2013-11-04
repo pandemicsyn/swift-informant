@@ -1,5 +1,3 @@
-# Copyright (c) 2010-2011 OpenStack, LLC.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -120,23 +118,33 @@ class Informant(object):
                             stat_type = 'obj'
                 if not stat_type:
                     stat_type = 'invalid'
-                version, acct, _junk = split_path(req.path, 1, 3, True)
-                if acct in self.prefix_accounts:
-                    metric_name = "%s.%s.%s.%s" % (acct, stat_type,
-                                                   request_method, status_int)
+                if stat_type not in ['acct', 'cont', 'obj']:
+                    acct = None
                 else:
-                    metric_name = "%s.%s.%s" % (stat_type, request_method,
-                                                status_int)
-                counter = "%s%s:1|c|@%s" % (self.metric_name_prepend,
-                                            metric_name,
-                                            self.statsd_sample_rate)
-                timer = "%s%s:%d|ms|@%s" % (self.metric_name_prepend,
-                                            metric_name, duration,
-                                            self.statsd_sample_rate)
-                tfer = "%stfer.%s:%s|c|@%s" % (self.metric_name_prepend,
-                                               metric_name, transferred,
-                                               self.statsd_sample_rate)
-                self._send_events([counter, timer, tfer], self.combined_events)
+                    try:
+                        version, acct, _junk = split_path(req.path, 1, 3, True)
+                    except ValueError:
+                        acct = None
+                metrics = []
+                name = "%s.%s.%s" % (stat_type, request_method,
+                                     status_int)
+                metrics.append("%s%s:1|c|@%s" %
+                               (self.metric_name_prepend, name,
+                                self.statsd_sample_rate))
+                metrics.append("%s%s:%d|ms|@%s" %
+                               (self.metric_name_prepend, name, duration,
+                                self.statsd_sample_rate))
+                metrics.append("%stfer.%s:%s|c|@%s" %
+                               (self.metric_name_prepend, name, transferred,
+                                self.statsd_sample_rate))
+                if acct in self.prefix_accounts:
+                    metrics.append("%s.%s.%s.%s" % (acct, stat_type,
+                                                    request_method,
+                                                    status_int))
+                    metrics.append("%s:%s:%d|ms|@%s" %
+                                   (acct, stat_type, duration,
+                                    self.statsd_sample_rate))
+                self._send_events(metrics, self.combined_events)
         except Exception:
             try:
                 self.logger.exception(_("Encountered error in statsd_event"))
