@@ -2,15 +2,16 @@
 
 Swift Proxy Middleware to send events to a [statsd](http://github.com/etsy/statsd/ "statsd") instance.
 
-**After** the request has been serviced (using a event posthook) it will fire a statsd counter incrementing the request method's status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object. In addition to the counter a timer event is fired for the request duration of the event, as well as counter for bytes transferred.
+**After** the request has been serviced (using a event posthook) it will fire a statsd counter incrementing the request method's status code.  It breaks these up by whether the request was an operation on an Account, Container, or an Object. In addition to the counter, two timer event's are fired for the request duration as well as time until start_response was seen. If present a counter for bytes transferred is included as well.
 
 Counter Sample:
 
     obj.GET.200:1|c
 
-Timer Sample:
+Timer Sample (duration, and start_response_time:
 
-    duration.acct.GET.200:140|ms
+    acct.GET.200:140|ms
+    srt.acct.GET.200:11|ms
 
 Bytes Transferred Sample:
 
