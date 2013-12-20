@@ -97,8 +97,15 @@ class Informant(object):
                     status_int = 599
                 if 'informant.start_time' in env:
                     duration = (time() - env['informant.start_time']) * 1000
+                    if 'informant.start_response_time' in env:
+                        start_response_time = \
+                            (env['informant.start_response_time'] -
+                             env['informant.start_time']) * 1000
+                    else:
+                        start_response_time = 0
                 else:
                     duration = 0
+                    start_response_time = 0
                 transferred = getattr(req, 'bytes_transferred', 0)
                 if transferred is '-' or transferred is 0:
                     transferred = getattr(response, 'bytes_transferred', 0)
@@ -134,6 +141,9 @@ class Informant(object):
                 metrics.append("%s%s:%d|ms|@%s" %
                                (self.metric_name_prepend, name, duration,
                                 self.statsd_sample_rate))
+                metrics.append("%ssrt.%s:%d|ms|@%s" %
+                               (self.metric_name_prepend, name,
+                                start_response_time, self.statsd_sample_rate))
                 metrics.append("%stfer.%s:%s|c|@%s" %
                                (self.metric_name_prepend, name, transferred,
                                 self.statsd_sample_rate))
@@ -156,6 +166,7 @@ class Informant(object):
         def _start_response(status, headers, exc_info=None):
             """start_response wrapper to add request status to env"""
             env['informant.status'] = int(status.split(' ', 1)[0])
+            env['informant.start_response_time'] = time()
             start_response(status, headers, exc_info)
 
         req = Request(env)
