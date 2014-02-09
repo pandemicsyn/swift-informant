@@ -4,4 +4,5 @@ env:
 script:
   - pip install .
   - pip install -r .travis_requirements --use-mirrors
+  - pip install coverage
   - nosetests --with-coverage --cover-package informant
