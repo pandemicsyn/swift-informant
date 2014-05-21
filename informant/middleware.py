@@ -41,6 +41,8 @@ class Informant(object):
         self.combine_key = conf.get('combine_key', '\n')
         if self.combine_key == "\\n":
             self.combine_key = '\n'
+        self.informant_type = conf.get('informant_type', 'proxy').lower()
+        self.per_disk = conf.get('per_disk', 'no').lower() in TRUE_VALUES
         self.metric_name_prepend = conf.get('metric_name_prepend', '')
         self.actual_rate = 0.0
         self.counter = 0
@@ -112,47 +114,72 @@ class Informant(object):
                 if transferred is '-':
                     transferred = 0
                 stat_type = env.get('swift.source')
-                if not stat_type:
-                    if req.path == '/healthcheck':
-                        stat_type = 'healthcheck'
-                    elif req.path.startswith('/v1/') or \
-                            req.path.startswith('/v1.0/'):
-                        try:
-                            stat_type = [
-                                'invalid', 'invalid', 'acct', 'cont',
-                                'obj'][req.path.rstrip('/').count('/')]
-                        except IndexError:
-                            stat_type = 'obj'
-                if not stat_type:
-                    stat_type = 'invalid'
-                if stat_type not in ['acct', 'cont', 'obj']:
-                    acct = None
-                else:
-                    try:
-                        version, acct, _junk = split_path(req.path, 1, 3, True)
-                    except ValueError:
+                if self.informant_type == 'proxy':
+                    if not stat_type:
+                        if req.path == '/healthcheck':
+                            stat_type = 'healthcheck'
+                        elif req.path.startswith('/v1/') or \
+                                req.path.startswith('/v1.0/'):
+                            try:
+                                stat_type = [
+                                    'invalid', 'invalid', 'acct', 'cont',
+                                    'obj'][req.path.rstrip('/').count('/')]
+                            except IndexError:
+                                stat_type = 'obj'
+                    if not stat_type:
+                        stat_type = 'invalid'
+                    if stat_type not in ['acct', 'cont', 'obj']:
                         acct = None
-                metrics = []
-                name = "%s.%s.%s" % (stat_type, request_method,
-                                     status_int)
-                metrics.append("%s%s:1|c|@%s" %
-                               (self.metric_name_prepend, name,
-                                self.statsd_sample_rate))
-                metrics.append("%s%s:%d|ms|@%s" %
-                               (self.metric_name_prepend, name, duration,
-                                self.statsd_sample_rate))
-                metrics.append("%ssrt.%s:%d|ms|@%s" %
-                               (self.metric_name_prepend, name,
-                                start_response_time, self.statsd_sample_rate))
-                metrics.append("%stfer.%s:%s|c|@%s" %
-                               (self.metric_name_prepend, name, transferred,
-                                self.statsd_sample_rate))
-                if acct in self.prefix_accounts:
-                    metrics.append("%s.%s.%s.%s" % (acct, stat_type,
-                                                    request_method,
-                                                    status_int))
-                    metrics.append("%s:%s:%d|ms|@%s" %
-                                   (acct, stat_type, duration,
+                    else:
+                        try:
+                            version, acct, _junk = split_path(req.path, 1, 3, True)
+                        except ValueError:
+                            acct = None
+                    metrics = []
+                    name = "%s.%s.%s" % (stat_type, request_method,
+                                         status_int)
+                    metrics.append("%s%s:1|c|@%s" %
+                                   (self.metric_name_prepend, name,
+                                    self.statsd_sample_rate))
+                    metrics.append("%s%s:%d|ms|@%s" %
+                                   (self.metric_name_prepend, name, duration,
+                                    self.statsd_sample_rate))
+                    metrics.append("%ssrt.%s:%d|ms|@%s" %
+                                   (self.metric_name_prepend, name,
+                                    start_response_time, self.statsd_sample_rate))
+                    metrics.append("%stfer.%s:%s|c|@%s" %
+                                   (self.metric_name_prepend, name, transferred,
+                                    self.statsd_sample_rate))
+                    if acct in self.prefix_accounts:
+                        metrics.append("%s.%s.%s.%s" % (acct, stat_type,
+                                                        request_method,
+                                                        status_int))
+                        metrics.append("%s:%s:%d|ms|@%s" %
+                                       (acct, stat_type, duration,
+                                        self.statsd_sample_rate))
+                else:
+                    stat_type = self.informant_type
+                    if self.per_disk:
+                        try:
+                            disk, _junk = split_path(req.path, 1, 2, True)
+                        except ValueError:
+                            disk = "none"
+                        stat_type = "%s.%s" % (stat_type, disk)
+
+                    metrics = []
+                    name = "%s.%s.%s" % (stat_type, request_method,
+                                         status_int)
+                    metrics.append("%s%s:1|c|@%s" %
+                                   (self.metric_name_prepend, name,
+                                    self.statsd_sample_rate))
+                    metrics.append("%s%s:%d|ms|@%s" %
+                                   (self.metric_name_prepend, name, duration,
+                                    self.statsd_sample_rate))
+                    metrics.append("%ssrt.%s:%d|ms|@%s" %
+                                   (self.metric_name_prepend, name,
+                                    start_response_time, self.statsd_sample_rate))
+                    metrics.append("%stfer.%s:%s|c|@%s" %
+                                   (self.metric_name_prepend, name, transferred,
                                     self.statsd_sample_rate))
                 self._send_events(metrics, self.combined_events)
         except Exception:
