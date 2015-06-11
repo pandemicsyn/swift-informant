@@ -157,6 +157,10 @@ class Informant(object):
                                    (self.prefix_accounts_metric_prepend,
                                     acct, stat_type, duration,
                                     self.statsd_sample_rate))
+                    metrics.append("%s%s.srt.%s:%d|ms|@%s" %
+                                   (self.prefix_accounts_metric_prepend,
+                                    acct, name, start_response_time,
+                                    self.statsd_sample_rate))
                 self._send_events(metrics, self.combined_events)
         except Exception:
             try:
